@@ -10,7 +10,7 @@ type Node = { type?: string; props?: { key?: string }; children?: unknown }
 // 0 completo, 1 sem reset, 2 barra curta, 3 sem barra, 4 rótulos curtos.
 const levelOf = (cols?: number) => {
   const c = cols ?? 200
-  return c >= 118 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
+  return c >= 104 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
 }
 const BAR = [8, 8, 5, 0, 0]
 const sepOf = (level: number) => (level >= 3 ? ' · ' : '  ·  ')

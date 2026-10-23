@@ -12,7 +12,7 @@ type Node = { type?: string; props?: { key?: string }; children?: unknown }
 // 0 completo, 1 sem reset, 2 barra curta, 3 sem barra, 4 rótulos curtos.
 const levelOf = (cols?: number) => {
   const c = cols ?? 200
-  return c >= 118 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
+  return c >= 104 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
 }
 const BAR: number[] = [8, 8, 5, 0, 0]
 const sepOf = (level: number) => (level >= 3 ? ' · ' : '  ·  ')
@@ -89,13 +89,13 @@ export const register: Register = on => {
       return (
         <Text>
           <Text dimColor>{label} </Text>
-          <Text color={color}>{'━'.repeat(full)}</Text>
-          <Text dimColor>{'╌'.repeat(rest)}</Text>
+          <Text backgroundColor={color}>{' '.repeat(full)}</Text>
+          <Text backgroundColor="#3b4048">{' '.repeat(rest)}</Text>
           <Text color={color} bold>
             {' '}
             {String(pct).padStart(3)}%
           </Text>
-          {level === 0 && reset ? <Text dimColor> · resets {reset}</Text> : null}
+          {level === 0 && reset ? <Text dimColor>  {reset}</Text> : null}
         </Text>
       )
     }

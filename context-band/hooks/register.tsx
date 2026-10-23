@@ -15,7 +15,7 @@ const segmentsOf = (below: unknown): Node[] =>
   kids(below as Node).filter(k => k.props?.key?.startsWith('seg-'))
 const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
 
-const WIDTH = 12
+const WIDTH = 8
 
 const split = (pct: number) => {
   const filled = Math.max(0, Math.min(WIDTH, Math.round((pct / 100) * WIDTH)))
@@ -70,12 +70,12 @@ export const register: Register = on => {
       </Text>
     )
 
-    const seg = <Box key="seg-30">{mine}</Box>
+    const seg = <Box key="seg-30" flexShrink={0}>{mine}</Box>
     const segs = [...segmentsOf(below), seg as Node].sort((a, b) => rankOf(a) - rankOf(b)) as unknown as RenderElement[]
 
     return (
       <Box key="band">
-        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'   ·   '}</Text>, s]))}
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'  ·  '}</Text>, s]))}
       </Box>
     )
   })

@@ -17,7 +17,7 @@ const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
 
 const limitsAtom = atom({ plugin: 'usage-band', key: 'limits' } as const, [] as Limit[])
 
-const WIDTH = 12
+const WIDTH = 8
 
 const split = (pct: number) => {
   const filled = Math.max(0, Math.min(WIDTH, Math.round((pct / 100) * WIDTH)))
@@ -75,7 +75,7 @@ export const register: Register = on => {
             {' '}
             {String(Math.round(l.percentUsed)).padStart(3)}%
           </Text>
-          {reset ? <Text dimColor> · resets in {reset}</Text> : null}
+          {reset ? <Text dimColor> · resets {reset}</Text> : null}
         </Text>
       )
     }
@@ -83,17 +83,17 @@ export const register: Register = on => {
     const mine = (
       <Text>
         {meter('session', limits.find(l => l.kind === 'five_hour'))}
-        <Text dimColor>   ·   </Text>
+        <Text dimColor>  ·  </Text>
         {meter('weekly', limits.find(l => l.kind === 'seven_day'))}
       </Text>
     )
 
-    const seg = <Box key="seg-20">{mine}</Box>
+    const seg = <Box key="seg-20" flexShrink={0}>{mine}</Box>
     const segs = [...segmentsOf(below), seg as Node].sort((a, b) => rankOf(a) - rankOf(b)) as unknown as RenderElement[]
 
     return (
       <Box key="band">
-        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'   ·   '}</Text>, s]))}
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'  ·  '}</Text>, s]))}
       </Box>
     )
   })

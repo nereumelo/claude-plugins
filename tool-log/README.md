@@ -12,10 +12,14 @@ Atalhos, mostrados na barra do painel (com ele focado): `e` só erros, `l` só c
 cicla o filtro por ferramenta, `p` pausa o registro, `c` limpa. Clique no título
 de um turno para recolher ou abrir o grupo, e numa chamada para ver a entrada
 completa. Esperas do usuário (`AskUserQuestion`, planos) ficam fora do tempo de
-trabalho e das cores; tempos a partir de 10s ficam amarelos e de 30s vermelhos.
+trabalho e das cores; tempos a partir de 10s ficam amarelos e de 30s vermelhos; a barra de uma chamada
+com erro ou negada é vermelha.
 A barra de duração encolhe com a largura (10, 6 ou nenhuma, abaixo de 48 colunas) e o resumo some abaixo de 40.
-O tempo de cada chamada conta a partir de quando o engine a libera (depois da
-permissão), então a espera em fila de chamadas paralelas não entra. O tempo do
+O tempo de cada chamada conta a partir de quando o engine a libera (evento
+`tool.check`), mas a API de plugins não expõe o início real da execução: a duração
+ainda pode incluir a decisão de permissão, que no modo auto leva alguns segundos
+(um `sleep 2` aparece com ~5s; `ls` e `git log`, não). Trate o tempo como um limite
+superior e compare chamadas entre si, não com um cronômetro. O tempo do
 `Agent` fica esmaecido e sem barra, e um `!` amarelo no lugar do `✓` avisa que
 um comando do subagente falhou. Os grupos de turno são separados por uma linha
 em branco. Com um filtro ativo, uma linha mostra o filtro e quantas chamadas ele deixa.

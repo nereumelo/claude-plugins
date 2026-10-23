@@ -263,7 +263,7 @@ export const register: Register = on => {
                     {barW > 0 ? (
                       <Text>
                         {' '}
-                        <Text backgroundColor={color ?? 'green'}>{' '.repeat(w)}</Text>
+                        <Text backgroundColor={color ?? (c.status === 'error' || c.status === 'denied' ? 'red' : 'green')}>{' '.repeat(w)}</Text>
                         {' '.repeat(Math.max(0, barW - w))}
                       </Text>
                     ) : null}

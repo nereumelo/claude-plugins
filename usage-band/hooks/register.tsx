@@ -108,7 +108,7 @@ export const register: Register = on => {
       </Text>
     )
 
-    const seg = <Box key="seg-20" flexShrink={0}>{mine}</Box>
+    const seg = <Box key="seg-30" flexShrink={0}>{mine}</Box>
     const segs = [...segmentsOf(below), seg as Node].sort((a, b) => rankOf(a) - rankOf(b)) as unknown as RenderElement[]
 
     return (

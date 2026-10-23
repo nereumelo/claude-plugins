@@ -33,7 +33,7 @@ A **classificação** usa dois campos de cada entrada:
 
 `model-band`, `usage-band` e `context-band` são segmentos de uma mesma faixa acima
 do prompt. Instale os que quiser: cada um compõe o seu pedaço com os outros que
-estiverem carregados (ordem fixa: modelo, uso, contexto), sem depender deles.
+estiverem carregados (ordem fixa: modelo, contexto, uso), sem depender deles.
 Sem nenhum dos outros, mostra só o seu segmento.
 
 ## Como usar

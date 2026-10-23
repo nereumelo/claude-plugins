@@ -6,14 +6,49 @@
   },
   "plugins": [
     {
-      "name": "usage-band",
-      "source": "./usage-band",
-      "description": "Faixa acima do prompt com modelo, uso da sessão (5h) e uso semanal",
+      "name": "model-band",
+      "source": "./model-band",
+      "description": "Segmento da faixa acima do prompt: modelo em uso",
       "category": "mod",
       "tags": [
         "custom",
+        "band",
+        "statusline"
+      ]
+    },
+    {
+      "name": "usage-band",
+      "source": "./usage-band",
+      "description": "Segmento da faixa acima do prompt: uso da sessão (5h) e semanal",
+      "category": "mod",
+      "tags": [
+        "custom",
+        "band",
         "statusline",
         "usage"
+      ]
+    },
+    {
+      "name": "context-band",
+      "source": "./context-band",
+      "description": "Segmento da faixa acima do prompt: janela de contexto, com toast aos 80% e 90%",
+      "category": "mod",
+      "tags": [
+        "custom",
+        "band",
+        "statusline",
+        "context"
+      ]
+    },
+    {
+      "name": "tool-log",
+      "source": "./tool-log",
+      "description": "Painel com as chamadas de ferramenta da sessão e o tempo de cada uma (/tool-log)",
+      "category": "mod",
+      "tags": [
+        "custom",
+        "pane",
+        "tools"
       ]
     }
   ]

@@ -1,1 +1,1 @@
-{ "name": "usage-band", "version": "0.1.0", "description": "Band above the prompt showing the model, session (5h) usage and weekly usage", "types": "./types/index.d.ts" }
+{ "name": "usage-band", "version": "0.2.0", "description": "Segmento da faixa acima do prompt: uso da sessão (5h) e semanal", "types": "./types/index.d.ts" }

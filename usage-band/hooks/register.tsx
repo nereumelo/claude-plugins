@@ -1,25 +1,25 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { Register, RenderElement } from 'claude-code'
 
-import type { Info, Limit } from '../types'
+import type { Limit } from '../types'
 
-const info = atom({ plugin: 'usage-band', key: 'info' } as const, {
-  model: '',
-  limits: [],
-} as Info)
+// Faixa única: cada mod entrega um segmento (Box com key `seg-<rank>`) e o
+// compõe com os segmentos que já vieram de baixo, ordenado por rank, então a
+// ordem de carga dos mods não importa.
+type Node = { type?: string; props?: { key?: string; children?: unknown } }
+const kids = (n: Node | undefined): Node[] => {
+  const c = n?.props?.children
+  return (Array.isArray(c) ? c.flat() : c ? [c]  : []) as Node[]
+}
+const segmentsOf = (below: unknown): Node[] =>
+  kids(below as Node).filter(k => k.props?.key?.startsWith('seg-'))
+const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
+
+const limitsAtom = atom({ plugin: 'usage-band', key: 'limits' } as const, [] as Limit[])
 
 const WIDTH = 12
 
-// claude-sonnet-5-5 -> Sonnet 5.5, claude-opus-4-1-20250805 -> Opus 4.1
-const prettyModel = (id: string) => {
-  const m = id.replace(/^claude-/, '').replace(/-\d{8}$/, '').replace(/\[.*\]$/, '')
-  const parts = m.split('-')
-  const name = parts.filter(p => !/^\d+$/.test(p)).map(p => p[0].toUpperCase() + p.slice(1))
-  const ver = parts.filter(p => /^\d+$/.test(p)).join('.')
-  return [...name, ver].filter(Boolean).join(' ') || id
-}
-
-const bar = (pct: number) => {
+const split = (pct: number) => {
   const filled = Math.max(0, Math.min(WIDTH, Math.round((pct / 100) * WIDTH)))
   return [filled, WIDTH - filled] as const
 }
@@ -36,24 +36,24 @@ const until = (iso: string | undefined, now: number) => {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    const [model, usage] = await Promise.all([$.session.model(), $.session.usage()])
-    await update($, info, () => ({ model, limits: usage.rateLimits }))
+    const usage = await $.session.usage()
+    await update($, limitsAtom, () => usage.rateLimits)
 
     return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
-    const model = await $.session.model()
-    await update($, info, () => ({ model, limits: e.rateLimits }))
+    await update($, limitsAtom, () => e.rateLimits)
 
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const { model, limits } = await read($, info)
+    const below = await next(e)
+    const limits = await read($, limitsAtom)
 
-    if (e.props.hasSurvey || model === '') {
-      return next(e)
+    if (e.props.hasSurvey || limits.length === 0) {
+      return below
     }
 
     const now = await $.clock.now()
@@ -61,19 +61,16 @@ export const register: Register = on => {
 
     const meter = (label: string, l: Limit | undefined) => {
       if (!l) {
-        return (
-          <Text dimColor>
-            {label} –
-          </Text>
-        )
+        return <Text dimColor>{label} –</Text>
       }
       const color = tone(l.percentUsed)
+      const [full, rest] = split(l.percentUsed)
       const reset = until(l.resetsAt, now)
       return (
         <Text>
           <Text dimColor>{label} </Text>
-          <Text color={color}>{'━'.repeat(bar(l.percentUsed)[0])}</Text>
-          <Text dimColor>{'╌'.repeat(bar(l.percentUsed)[1])}</Text>
+          <Text color={color}>{'━'.repeat(full)}</Text>
+          <Text dimColor>{'╌'.repeat(rest)}</Text>
           <Text color={color} bold>
             {' '}
             {String(Math.round(l.percentUsed)).padStart(3)}%
@@ -83,15 +80,20 @@ export const register: Register = on => {
       )
     }
 
-    return (
-      <Box>
-        <Text color="cyan" bold>
-          {prettyModel(model)}
-        </Text>
-        <Text dimColor>   ·   </Text>
+    const mine = (
+      <Text>
         {meter('session', limits.find(l => l.kind === 'five_hour'))}
         <Text dimColor>   ·   </Text>
         {meter('weekly', limits.find(l => l.kind === 'seven_day'))}
+      </Text>
+    )
+
+    const seg = <Box key="seg-20">{mine}</Box>
+    const segs = [...segmentsOf(below), seg as Node].sort((a, b) => rankOf(a) - rankOf(b)) as unknown as RenderElement[]
+
+    return (
+      <Box key="band">
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'   ·   '}</Text>, s]))}
       </Box>
     )
   })

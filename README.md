@@ -24,7 +24,17 @@ A **classificação** usa dois campos de cada entrada:
 
 | Plugin | Categoria | Origem | O que faz |
 | --- | --- | --- | --- |
-| [`usage-band`](usage-band/README.md) | mod | custom | Faixa acima do prompt com modelo, uso da sessão (5h) e uso semanal |
+| [`model-band`](model-band/README.md) | mod | custom | Faixa: modelo em uso |
+| [`usage-band`](usage-band/README.md) | mod | custom | Faixa: uso da sessão (5h) e semanal |
+| [`context-band`](context-band/README.md) | mod | custom | Faixa: janela de contexto, toast aos 80% e 90% |
+| [`tool-log`](tool-log/README.md) | mod | custom | Painel `/tool-log` com chamadas de ferramenta e duração |
+
+### Faixa única
+
+`model-band`, `usage-band` e `context-band` são segmentos de uma mesma faixa acima
+do prompt. Instale os que quiser: cada um compõe o seu pedaço com os outros que
+estiverem carregados (ordem fixa: modelo, uso, contexto), sem depender deles.
+Sem nenhum dos outros, mostra só o seu segmento.
 
 ## Como usar
 

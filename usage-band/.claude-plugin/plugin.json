@@ -1,1 +1,1 @@
-{ "name": "usage-band", "description": "Segmento da faixa acima do prompt: uso da sessão (5h) e semanal", "types": "./types/index.d.ts" }
+{ "name": "usage-band", "version": "0.2.0", "description": "Segmento da faixa acima do prompt: uso da sessão (5h) e semanal", "types": "./types/index.d.ts" }

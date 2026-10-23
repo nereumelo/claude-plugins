@@ -1,1 +1,1 @@
-{ "name": "context-band", "description": "Segmento da faixa acima do prompt: preenchimento da janela de contexto, com aviso aos 80% e 90%", "types": "./types/index.d.ts" }
+{ "name": "context-band", "version": "0.1.0", "description": "Segmento da faixa acima do prompt: preenchimento da janela de contexto, com aviso aos 80% e 90%", "types": "./types/index.d.ts" }

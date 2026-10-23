@@ -1,1 +1,1 @@
-{ "name": "tool-log", "description": "Painel lateral com as chamadas de ferramenta da sessão e quanto cada uma demorou (/tool-log)", "types": "./types/index.d.ts" }
+{ "name": "tool-log", "version": "0.1.0", "description": "Painel lateral com as chamadas de ferramenta da sessão e quanto cada uma demorou (/tool-log)", "types": "./types/index.d.ts" }

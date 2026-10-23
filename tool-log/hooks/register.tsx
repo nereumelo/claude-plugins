@@ -56,9 +56,21 @@ const wrap = (s: string, n: number) => {
 }
 
 const timeTone = (c: Call) =>
-  c.ms === null || WAITS.has(c.tool) ? undefined : c.ms >= 30000 ? 'red' : c.ms >= 10000 ? 'yellow' : undefined
+  c.ms === null || WAITS.has(c.tool) || c.tool === 'Agent' ? undefined : c.ms >= 30000 ? 'red' : c.ms >= 10000 ? 'yellow' : undefined
 
 export const register: Register = on => {
+  // Quando o engine liberou a chamada (permissão decidida): o tempo da fila e do
+  // classificador não conta como duração da ferramenta. Perdido num reload, cai
+  // para o início do tool.call.
+  const readyAt = new Map<string, number>()
+
+  on('tool.check', async ($, e, next) => {
+    const verdict = await next(e)
+    if (e.tool_use_id !== undefined) readyAt.set(e.tool_use_id, await $.clock.now())
+
+    return verdict
+  })
+
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'tool-log',
@@ -105,7 +117,8 @@ export const register: Register = on => {
     }
     await update($, calls, list => [...list, call].slice(-200))
     const ran = await next(e)
-    const ms = (await $.clock.now()) - startedAt
+    const ms = (await $.clock.now()) - (readyAt.get(id) ?? startedAt)
+    readyAt.delete(id)
     const status: Status = ran.deny !== undefined ? 'denied' : ran.isError === true ? 'error' : 'ok'
     await update($, calls, list => list.map(c => (c.id === id ? { ...c, ms, status } : c)))
 
@@ -197,17 +210,17 @@ export const register: Register = on => {
         if (c.tool !== 'Agent' || !g) return c
         const back = g.find(k => k.tool === HANDBACK)
         const end = back && back.ms !== null ? back.startedAt + back.ms : null
-        return end === null ? { ...c, ms: null, status: 'run' } : { ...c, ms: end - c.startedAt, status: g.some(k => k.status === 'error') ? 'error' : 'ok' }
+        return end === null ? { ...c, ms: null, status: 'run' } : { ...c, ms: end - c.startedAt, status: c.status === 'run' ? 'ok' : c.status }
       }
 
-      const rows: { c: Call; child: boolean }[] = []
+      const rows: { c: Call; child: boolean; warn: boolean }[] = []
       for (const top of tops.slice().reverse()) {
         const eff = effective(top)
         const sub = (kids.get(top.id) ?? []).filter(k => k.tool !== HANDBACK)
         const subShown = sub.filter(passes)
         if (!isFiltered || passes(eff) || subShown.length > 0) {
-          rows.push({ c: eff, child: top.agentId !== undefined })
-          for (const k of isFiltered ? subShown : sub) rows.push({ c: k, child: true })
+          rows.push({ c: eff, child: top.agentId !== undefined, warn: eff.tool === 'Agent' && eff.status === 'ok' && sub.some(k => k.status === 'error') })
+          for (const k of isFiltered ? subShown : sub) rows.push({ c: k, child: true, warn: false })
         }
       }
       if (rows.length === 0) return null
@@ -228,7 +241,7 @@ export const register: Register = on => {
             <Text dimColor>{'  '}{sub}</Text>
           </Button>
           {isOpen &&
-            rows.map(({ c, child }) => {
+            rows.map(({ c, child, warn }) => {
               const indent = child ? '    └ ' : '  '
               const fixed = indent.length + 1 + 1 + toolW + 1 + (barW > 0 ? barW + 1 : 0) + timeW
               const sumW = hasSummary ? Math.max(0, cols - fixed - 1) : 0
@@ -244,7 +257,7 @@ export const register: Register = on => {
                     onPress={() => update($, expanded, l => (l.includes(c.id) ? l.filter(x => x !== c.id) : [...l, c.id]))}
                   >
                     <Text dimColor>{indent}</Text>
-                    {icon(c)}
+                    {warn ? <Text color="yellow">!</Text> : icon(c)}
                     <Text color="cyan"> {cut(c.tool, toolW).padEnd(toolW)}</Text>
                     {hasSummary ? <Text dimColor> {cutSmart(c.summary, sumW).padEnd(sumW)}</Text> : null}
                     {barW > 0 ? (
@@ -323,7 +336,7 @@ export const register: Register = on => {
         ) : null}
         <Text> </Text>
         {turnBlocks.every(b => b === null) && <Text dimColor>Nenhuma chamada{f !== 'all' || tf !== '' ? ' neste filtro' : ' ainda'}.</Text>}
-        {turnBlocks}
+        {turnBlocks.filter(b => b !== null).flatMap((b, i) => (i === 0 ? [b] : [<Text> </Text>, b]))}
       </Box>
     )
   })

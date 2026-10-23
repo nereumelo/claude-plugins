@@ -14,5 +14,9 @@ de um turno para recolher ou abrir o grupo, e numa chamada para ver a entrada
 completa. Esperas do usuário (`AskUserQuestion`, planos) ficam fora do tempo de
 trabalho e das cores; tempos a partir de 10s ficam amarelos e de 30s vermelhos.
 A barra de duração encolhe com a largura (10, 6 ou nenhuma, abaixo de 48 colunas) e o resumo some abaixo de 40.
-Com um filtro ativo, uma linha mostra o filtro e quantas chamadas ele deixa.
+O tempo de cada chamada conta a partir de quando o engine a libera (depois da
+permissão), então a espera em fila de chamadas paralelas não entra. O tempo do
+`Agent` fica esmaecido e sem barra, e um `!` amarelo no lugar do `✓` avisa que
+um comando do subagente falhou. Os grupos de turno são separados por uma linha
+em branco. Com um filtro ativo, uma linha mostra o filtro e quantas chamadas ele deixa.
 Guarda as últimas 200 chamadas e 50 turnos.

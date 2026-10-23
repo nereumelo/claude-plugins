@@ -7,6 +7,16 @@ import type { Limit } from '../types'
 // compõe com os segmentos que já vieram de baixo, ordenado por rank, então a
 // ordem de carga dos mods não importa.
 type Node = { type?: string; props?: { key?: string }; children?: unknown }
+// Layout adaptável pela largura da faixa (e.props.bodyColumns); os três mods
+// usam os mesmos cortes, então a faixa inteira muda de nível junto:
+// 0 completo, 1 sem reset, 2 barra curta, 3 sem barra, 4 rótulos curtos.
+const levelOf = (cols?: number) => {
+  const c = cols ?? 200
+  return c >= 118 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
+}
+const BAR: number[] = [8, 8, 5, 0, 0]
+const sepOf = (level: number) => (level >= 3 ? ' · ' : '  ·  ')
+
 const kids = (n: Node | undefined): Node[] => {
   const c = n?.children
   return (Array.isArray(c) ? c.flat() : c ? [c] : []) as Node[]
@@ -17,11 +27,9 @@ const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
 
 const limitsAtom = atom({ plugin: 'usage-band', key: 'limits' } as const, [] as Limit[])
 
-const WIDTH = 8
-
-const split = (pct: number) => {
-  const filled = Math.max(0, Math.min(WIDTH, Math.round((pct / 100) * WIDTH)))
-  return [filled, WIDTH - filled] as const
+const split = (pct: number, width: number) => {
+  const filled = Math.max(0, Math.min(width, Math.round((pct / 100) * width)))
+  return [filled, width - filled] as const
 }
 
 const tone = (pct: number) => (pct >= 90 ? 'red' : pct >= 70 ? 'yellow' : 'green')
@@ -59,13 +67,25 @@ export const register: Register = on => {
     const now = await $.clock.now()
     const { Box, Text } = $.ui.resolve(e)
 
-    const meter = (label: string, l: Limit | undefined) => {
+    const level = levelOf(e.props.bodyColumns)
+    const meter = (label: string, short: string, l: Limit | undefined) => {
       if (!l) {
-        return <Text dimColor>{label} –</Text>
+        return <Text dimColor>{level === 4 ? short : label} –</Text>
       }
       const color = tone(l.percentUsed)
-      const [full, rest] = split(l.percentUsed)
+      const pct = Math.round(l.percentUsed)
       const reset = until(l.resetsAt, now)
+      if (level >= 3) {
+        return (
+          <Text>
+            <Text dimColor>{level === 4 ? short : label} </Text>
+            <Text color={color} bold>
+              {pct}%
+            </Text>
+          </Text>
+        )
+      }
+      const [full, rest] = split(l.percentUsed, (BAR[level] ?? 0))
       return (
         <Text>
           <Text dimColor>{label} </Text>
@@ -73,18 +93,18 @@ export const register: Register = on => {
           <Text dimColor>{'╌'.repeat(rest)}</Text>
           <Text color={color} bold>
             {' '}
-            {String(Math.round(l.percentUsed)).padStart(3)}%
+            {String(pct).padStart(3)}%
           </Text>
-          {reset ? <Text dimColor> · resets {reset}</Text> : null}
+          {level === 0 && reset ? <Text dimColor> · resets {reset}</Text> : null}
         </Text>
       )
     }
 
     const mine = (
       <Text>
-        {meter('session', limits.find(l => l.kind === 'five_hour'))}
-        <Text dimColor>  ·  </Text>
-        {meter('weekly', limits.find(l => l.kind === 'seven_day'))}
+        {meter('session', '5h', limits.find(l => l.kind === 'five_hour'))}
+        <Text dimColor>{sepOf(level)}</Text>
+        {meter('weekly', '7d', limits.find(l => l.kind === 'seven_day'))}
       </Text>
     )
 
@@ -93,7 +113,7 @@ export const register: Register = on => {
 
     return (
       <Box key="band">
-        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'  ·  '}</Text>, s]))}
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{sepOf(level)}</Text>, s]))}
       </Box>
     )
   })

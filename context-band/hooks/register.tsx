@@ -1,6 +1,16 @@
 import { atom, read, update } from 'claude-code'
 import type { Register, RenderElement } from 'claude-code'
 
+// Layout adaptável pela largura da faixa (e.props.bodyColumns); os três mods
+// usam os mesmos cortes, então a faixa inteira muda de nível junto:
+// 0 completo, 1 sem reset, 2 barra curta, 3 sem barra, 4 rótulos curtos.
+const levelOf = (cols?: number) => {
+  const c = cols ?? 200
+  return c >= 118 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
+}
+const BAR: number[] = [8, 8, 5, 0, 0]
+const sepOf = (level: number) => (level >= 3 ? ' · ' : '  ·  ')
+
 const percentAtom = atom({ plugin: 'context-band', key: 'percent' } as const, null as number | null)
 
 // Faixa única: cada mod entrega um segmento (Box com key `seg-<rank>`) e o
@@ -15,11 +25,9 @@ const segmentsOf = (below: unknown): Node[] =>
   kids(below as Node).filter(k => k.props?.key?.startsWith('seg-'))
 const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
 
-const WIDTH = 8
-
-const split = (pct: number) => {
-  const filled = Math.max(0, Math.min(WIDTH, Math.round((pct / 100) * WIDTH)))
-  return [filled, WIDTH - filled] as const
+const split = (pct: number, width: number) => {
+  const filled = Math.max(0, Math.min(width, Math.round((pct / 100) * width)))
+  return [filled, width - filled] as const
 }
 
 const tone = (pct: number) => (pct >= 90 ? 'red' : pct >= 70 ? 'yellow' : 'green')
@@ -55,27 +63,37 @@ export const register: Register = on => {
       return below
     }
 
+    const level = levelOf(e.props.bodyColumns)
     const { Box, Text } = $.ui.resolve(e)
     const color = tone(pct)
-    const [full, rest] = split(pct)
-    const mine = (
-      <Text>
-        <Text dimColor>context </Text>
-        <Text color={color}>{'━'.repeat(full)}</Text>
-        <Text dimColor>{'╌'.repeat(rest)}</Text>
-        <Text color={color} bold>
-          {' '}
-          {String(Math.round(pct)).padStart(3)}%
+    const label = level === 4 ? 'ctx' : 'context'
+    const [full, rest] = split(pct, (BAR[level] ?? 0))
+    const mine =
+      level >= 3 ? (
+        <Text>
+          <Text dimColor>{label} </Text>
+          <Text color={color} bold>
+            {Math.round(pct)}%
+          </Text>
         </Text>
-      </Text>
-    )
+      ) : (
+        <Text>
+          <Text dimColor>{label} </Text>
+          <Text color={color}>{'━'.repeat(full)}</Text>
+          <Text dimColor>{'╌'.repeat(rest)}</Text>
+          <Text color={color} bold>
+            {' '}
+            {String(Math.round(pct)).padStart(3)}%
+          </Text>
+        </Text>
+      )
 
     const seg = <Box key="seg-30" flexShrink={0}>{mine}</Box>
     const segs = [...segmentsOf(below), seg as Node].sort((a, b) => rankOf(a) - rankOf(b)) as unknown as RenderElement[]
 
     return (
       <Box key="band">
-        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'  ·  '}</Text>, s]))}
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{sepOf(level)}</Text>, s]))}
       </Box>
     )
   })

@@ -5,6 +5,16 @@ import type { Register, RenderElement } from 'claude-code'
 // compõe com os segmentos que já vieram de baixo, ordenado por rank, então a
 // ordem de carga dos mods não importa.
 type Node = { type?: string; props?: { key?: string }; children?: unknown }
+// Layout adaptável pela largura da faixa (e.props.bodyColumns); os três mods
+// usam os mesmos cortes, então a faixa inteira muda de nível junto:
+// 0 completo, 1 sem reset, 2 barra curta, 3 sem barra, 4 rótulos curtos.
+const levelOf = (cols?: number) => {
+  const c = cols ?? 200
+  return c >= 118 ? 0 : c >= 88 ? 1 : c >= 78 ? 2 : c >= 60 ? 3 : 4
+}
+const BAR = [8, 8, 5, 0, 0]
+const sepOf = (level: number) => (level >= 3 ? ' · ' : '  ·  ')
+
 const kids = (n: Node | undefined): Node[] => {
   const c = n?.children
   return (Array.isArray(c) ? c.flat() : c ? [c] : []) as Node[]
@@ -47,6 +57,7 @@ export const register: Register = on => {
       return below
     }
 
+    const level = levelOf(e.props.bodyColumns)
     const { Box, Text } = $.ui.resolve(e)
     const mine = (
       <Text color="cyan" bold>
@@ -59,7 +70,7 @@ export const register: Register = on => {
 
     return (
       <Box key="band">
-        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{'  ·  '}</Text>, s]))}
+        {segs.flatMap((s, i) => (i === 0 ? [s] : [<Text dimColor>{sepOf(level)}</Text>, s]))}
       </Box>
     )
   })

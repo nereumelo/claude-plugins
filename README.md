@@ -41,17 +41,17 @@ Sem nenhum dos outros, mostra só o seu segmento.
 ### Instalar (permanente)
 
 ```sh
-claude plugin marketplace add ~/me/plugins
+claude plugin marketplace add ~/me/claude-plugins
 claude plugin install usage-band
 ```
 
-Ou, dentro de uma sessão: `/plugin marketplace add ~/me/plugins` e depois
+Ou, dentro de uma sessão: `/plugin marketplace add ~/me/claude-plugins` e depois
 `/plugin install usage-band`.
 
 ### Testar sem instalar
 
 ```sh
-claude --plugin-dir ~/me/plugins/usage-band
+claude --plugin-dir ~/me/claude-plugins/usage-band
 ```
 
 Vale só para aquela sessão, e o Claude recarrega o plugin ao salvar arquivos.
@@ -64,8 +64,8 @@ daqui. Edite os arquivos e rode `/reload-plugins` na sessão.
 ### Validar
 
 ```sh
-claude plugin validate ~/me/plugins/usage-band
-claude plugin validate ~/me/plugins
+claude plugin validate ~/me/claude-plugins/usage-band
+claude plugin validate ~/me/claude-plugins
 ```
 
 ## Adicionar um plugin
@@ -109,7 +109,7 @@ Para um plugin que mora numa subpasta de um repositório maior, ou fora do GitHu
 Depois, `claude plugin install <nome>` baixa do repositório do autor. Para fixar
 uma versão, acrescente `"ref": "<tag ou branch>"` dentro de `source`.
 
-Em ambos os casos, valide com `claude plugin validate ~/me/plugins`, atualize a
+Em ambos os casos, valide com `claude plugin validate ~/me/claude-plugins`, atualize a
 tabela de plugins acima e faça o commit.
 
 ## Compartilhar

@@ -120,8 +120,8 @@ export const register: Register = on => {
     const paused = await read($, isPaused)
     const cols = e.props.bodyColumns ?? 60
 
-    const barW = cols >= 90 ? 10 : 0
-    const hasSummary = cols >= 60
+    const barW = cols >= 76 ? 10 : cols >= 48 ? 6 : 0
+    const hasSummary = cols >= 40
     const timeW = 6
 
     const work = list.filter(c => c.ms !== null && !WAITS.has(c.tool))
@@ -166,7 +166,7 @@ export const register: Register = on => {
       const mineWork = mine.filter(c => c.ms !== null && !WAITS.has(c.tool))
       const sub = `${mine.length} calls · ${fmt(mineWork.reduce((n, c) => n + (c.ms ?? 0), 0))}`
       const peak = Math.max(1, ...mineWork.map(c => c.ms ?? 0))
-      const head = cut(title, Math.max(8, cols - sub.length - 6))
+      const head = cut(title, Math.max(8, cols - sub.length - 8))
 
       return (
         <Box flexDirection="column">
@@ -233,15 +233,13 @@ export const register: Register = on => {
             · {fmt(total)} working{slow ? ` · slowest ${slow.tool} ${fmt(slow.ms ?? 0)}` : ''}
           </Text>
         </Text>
-        <Box>
+        <Box flexWrap="wrap" columnGap={2}>
           <Button key="a-errors" plain hotkey="e" onPress={() => update($, filter, x => (x === 'errors' ? 'all' : 'errors'))}>
-            {mark(f === 'errors', '[e] erros')}
+            {mark(f === 'errors', 'erros')}
           </Button>
-          <Text> </Text>
           <Button key="a-slow" plain hotkey="l" onPress={() => update($, filter, x => (x === 'slow' ? 'all' : 'slow'))}>
-            {mark(f === 'slow', '[l] lentas')}
+            {mark(f === 'slow', 'lentas')}
           </Button>
-          <Text> </Text>
           <Button
             key="a-tool"
             plain
@@ -253,13 +251,11 @@ export const register: Register = on => {
               })
             }
           >
-            {mark(tf !== '', tf === '' ? '[t] ferramenta' : `[t] ${tf}`)}
+            {mark(tf !== '', tf === '' ? 'ferramenta' : tf)}
           </Button>
-          <Text> </Text>
           <Button key="a-pause" plain hotkey="p" onPress={() => update($, isPaused, x => !x)}>
-            {mark(paused, paused ? '[p] pausado' : '[p] pausar')}
+            {mark(paused, paused ? 'pausado' : 'pausar')}
           </Button>
-          <Text> </Text>
           <Button
             key="a-clear"
             plain
@@ -270,7 +266,7 @@ export const register: Register = on => {
               await update($, expanded, () => [])
             }}
           >
-            <Text dimColor>[c] limpar</Text>
+            <Text dimColor>limpar</Text>
           </Button>
         </Box>
         <Text> </Text>

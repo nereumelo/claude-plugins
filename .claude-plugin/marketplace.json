@@ -1,11 +1,20 @@
 {
   "name": "nereu-plugins",
-  "owner": { "name": "Nereu Melo" },
+  "description": "Plugins próprios (custom) e referências a plugins de terceiros",
+  "owner": {
+    "name": "Nereu Melo"
+  },
   "plugins": [
     {
       "name": "usage-band",
       "source": "./usage-band",
-      "description": "Faixa acima do prompt com modelo, uso da sessão (5h) e uso semanal"
+      "description": "Faixa acima do prompt com modelo, uso da sessão (5h) e uso semanal",
+      "category": "mod",
+      "tags": [
+        "custom",
+        "statusline",
+        "usage"
+      ]
     }
   ]
 }

@@ -6,10 +6,10 @@ const percentAtom = atom({ plugin: 'context-band', key: 'percent' } as const, nu
 // Faixa única: cada mod entrega um segmento (Box com key `seg-<rank>`) e o
 // compõe com os segmentos que já vieram de baixo, ordenado por rank, então a
 // ordem de carga dos mods não importa.
-type Node = { type?: string; props?: { key?: string; children?: unknown } }
+type Node = { type?: string; props?: { key?: string }; children?: unknown }
 const kids = (n: Node | undefined): Node[] => {
-  const c = n?.props?.children
-  return (Array.isArray(c) ? c.flat() : c ? [c]  : []) as Node[]
+  const c = n?.children
+  return (Array.isArray(c) ? c.flat() : c ? [c] : []) as Node[]
 }
 const segmentsOf = (below: unknown): Node[] =>
   kids(below as Node).filter(k => k.props?.key?.startsWith('seg-'))

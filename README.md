@@ -1,4 +1,4 @@
-# plugins
+# claude-plugins
 
 Meus plugins (mods) do Claude Code. Este repositório é um marketplace local:
 cada pasta na raiz é um plugin, listado em `.claude-plugin/marketplace.json`.
@@ -117,5 +117,5 @@ tabela de plugins acima e faça o commit.
 Publicando este repositório no GitHub, qualquer pessoa instala com:
 
 ```sh
-claude plugin install usage-band --marketplace <owner>/plugins
+claude plugin install usage-band --marketplace <owner>/claude-plugins
 ```

@@ -7,6 +7,7 @@ export type Call = {
   ms: number | null
   status: Status
   turn: string
+  startedAt: number
   agentId?: string
 }
 export type Turn = { id: string; text: string }

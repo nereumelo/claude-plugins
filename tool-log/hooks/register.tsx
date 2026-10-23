@@ -6,7 +6,7 @@ import type { Call, Filter, Status, Turn } from '../types'
 const PANE = 'tool-log'
 // Muda a tag quando os campos mudam: o valor guardado por uma versão anterior
 // é lido como o inicial.
-const calls = atom({ plugin: 'tool-log', key: 'calls' } as const, [], { shape: 'calls-3' })
+const calls = atom({ plugin: 'tool-log', key: 'calls' } as const, [], { shape: 'calls-4' })
 const turns = atom({ plugin: 'tool-log', key: 'turns' } as const, [], { shape: 'turns-1' })
 const filter = atom({ plugin: 'tool-log', key: 'filter' } as const, 'all' as Filter)
 const toolFilter = atom({ plugin: 'tool-log', key: 'toolFilter' } as const, '')
@@ -18,8 +18,10 @@ const NO_TURN = ''
 const SLOW_MS = 5000
 // Ferramentas em que o tempo é de espera do usuário, não de trabalho.
 const WAITS = new Set(['AskUserQuestion', 'ExitPlanMode', 'EnterPlanMode'])
+// Não são trabalho: o Agent volta na hora (o tempo real é o dos filhos) e o hand-back é só o relatório.
+const HANDBACK = 'SubagentHandback'
+const isWork = (c: Call) => c.ms !== null && !WAITS.has(c.tool) && c.tool !== 'Agent' && c.tool !== HANDBACK
 const KEYS = ['command', 'file_path', 'path', 'pattern', 'url', 'query', 'description', 'skill', 'prompt']
-const TRACK = '#3b4048'
 
 const field = (input: Record<string, unknown>) => {
   for (const k of KEYS) {
@@ -98,6 +100,7 @@ export const register: Register = on => {
       ms: null,
       status: 'run',
       turn: all.at(-1)?.id ?? NO_TURN,
+      startedAt,
       ...(e.agentId !== undefined ? { agentId: e.agentId } : {}),
     }
     await update($, calls, list => [...list, call].slice(-200))
@@ -124,18 +127,20 @@ export const register: Register = on => {
     const hasSummary = cols >= 40
     const timeW = 6
 
-    const work = list.filter(c => c.ms !== null && !WAITS.has(c.tool))
+    const visible = list.filter(c => c.tool !== HANDBACK)
+    const work = list.filter(isWork)
     const total = work.reduce((n, c) => n + (c.ms ?? 0), 0)
     const slow = work.reduce<Call | undefined>((a, c) => (!a || (c.ms ?? 0) > (a.ms ?? 0) ? c : a), undefined)
-    const tools = [...new Set(list.map(c => c.tool))].sort()
+    const tools = [...new Set(visible.map(c => c.tool))].sort()
 
     const passes = (c: Call) =>
       (f === 'all' || (f === 'errors' && (c.status === 'error' || c.status === 'denied')) || (f === 'slow' && (c.ms ?? 0) >= SLOW_MS)) &&
       (tf === '' || c.tool === tf)
+    const isFiltered = f !== 'all' || tf !== ''
 
     const turnIds = [...groups.map(g => g.id), ...(list.some(c => c.turn === NO_TURN) ? [NO_TURN] : [])].reverse()
     const lastId = groups.at(-1)?.id ?? NO_TURN
-    const toolW = Math.min(14, Math.max(4, ...list.map(c => c.tool.length)))
+    const toolW = Math.min(10, Math.max(4, ...visible.map(c => c.tool.length)))
 
     const icon = (c: Call) =>
       c.status === 'run' ? (
@@ -156,16 +161,63 @@ export const register: Register = on => {
         <Text dimColor>{label}</Text>
       )
 
+    // Liga cada subagente (as chamadas com o mesmo agentId) ao Agent que o disparou:
+    // o último Agent livre iniciado antes da primeira chamada do subagente.
+    const treeOf = (mine: Call[]) => {
+      const tops = mine.filter(c => c.agentId === undefined)
+      const byAgent = new Map<string, Call[]>()
+      for (const c of mine) {
+        if (c.agentId !== undefined) byAgent.set(c.agentId, [...(byAgent.get(c.agentId) ?? []), c])
+      }
+      const free = tops.filter(c => c.tool === 'Agent')
+      const kids = new Map<string, Call[]>()
+      const orphans: Call[] = []
+      for (const g of [...byAgent.values()].sort((x, y) => (x[0]?.startedAt ?? 0) - (y[0]?.startedAt ?? 0))) {
+        const parent = free.filter(a => a.startedAt <= (g[0]?.startedAt ?? 0)).at(-1)
+        if (parent) {
+          kids.set(parent.id, g)
+          free.splice(free.indexOf(parent), 1)
+        } else {
+          orphans.push(...g)
+        }
+      }
+      return { tops: [...tops, ...orphans].sort((x, y) => x.startedAt - y.startedAt), kids }
+    }
+
+    let shownCount = 0
+
     const turnBlocks = turnIds.map(id => {
       const mine = list.filter(c => c.turn === id)
-      const shown = mine.filter(passes)
-      if (shown.length === 0 && (f !== 'all' || tf !== '')) return null
       if (mine.length === 0) return null
+      const { tops, kids } = treeOf(mine)
+
+      // O Agent volta na hora: o tempo dele é o do subagente, até o hand-back.
+      const effective = (c: Call): Call => {
+        const g = kids.get(c.id)
+        if (c.tool !== 'Agent' || !g) return c
+        const back = g.find(k => k.tool === HANDBACK)
+        const end = back && back.ms !== null ? back.startedAt + back.ms : null
+        return end === null ? { ...c, ms: null, status: 'run' } : { ...c, ms: end - c.startedAt, status: g.some(k => k.status === 'error') ? 'error' : 'ok' }
+      }
+
+      const rows: { c: Call; child: boolean }[] = []
+      for (const top of tops.slice().reverse()) {
+        const eff = effective(top)
+        const sub = (kids.get(top.id) ?? []).filter(k => k.tool !== HANDBACK)
+        const subShown = sub.filter(passes)
+        if (!isFiltered || passes(eff) || subShown.length > 0) {
+          rows.push({ c: eff, child: top.agentId !== undefined })
+          for (const k of isFiltered ? subShown : sub) rows.push({ c: k, child: true })
+        }
+      }
+      if (rows.length === 0) return null
+      shownCount += rows.length
+
       const isOpen = flips[id] ?? id === lastId
       const title = id === NO_TURN ? 'chamadas anteriores' : `“${groups.find(g => g.id === id)?.text ?? ''}”`
-      const mineWork = mine.filter(c => c.ms !== null && !WAITS.has(c.tool))
-      const sub = `${mine.length} calls · ${fmt(mineWork.reduce((n, c) => n + (c.ms ?? 0), 0))}`
-      const peak = Math.max(1, ...mineWork.map(c => c.ms ?? 0))
+      const mineVisible = mine.filter(c => c.tool !== HANDBACK)
+      const sub = `${mineVisible.length} calls · ${fmt(mine.filter(isWork).reduce((n, c) => n + (c.ms ?? 0), 0))}`
+      const peak = Math.max(1, ...mine.filter(isWork).map(c => c.ms ?? 0))
       const head = cut(title, Math.max(8, cols - sub.length - 8))
 
       return (
@@ -176,50 +228,45 @@ export const register: Register = on => {
             <Text dimColor>{'  '}{sub}</Text>
           </Button>
           {isOpen &&
-            shown
-              .slice()
-              .reverse()
-              .map(c => {
-                const sub1 = c.agentId !== undefined
-                const indent = sub1 ? '    └ ' : '  '
-                const fixed = indent.length + 1 + 1 + toolW + 1 + (barW > 0 ? barW + 1 : 0) + timeW
-                const sumW = hasSummary ? Math.max(0, cols - fixed - 1) : 0
-                const wait = WAITS.has(c.tool)
-                const w = c.ms === null || wait ? 0 : Math.max(1, Math.round((c.ms / peak) * barW))
-                const color = timeTone(c)
-                const isOn = open.includes(c.id)
+            rows.map(({ c, child }) => {
+              const indent = child ? '    └ ' : '  '
+              const fixed = indent.length + 1 + 1 + toolW + 1 + (barW > 0 ? barW + 1 : 0) + timeW
+              const sumW = hasSummary ? Math.max(0, cols - fixed - 1) : 0
+              const w = !isWork(c) || (c.ms ?? 0) < 1000 ? 0 : Math.max(1, Math.round(((c.ms ?? 0) / peak) * barW))
+              const color = timeTone(c)
+              const isOn = open.includes(c.id)
 
-                return (
-                  <Box flexDirection="column">
-                    <Button
-                      key={`c-${c.id}`}
-                      plain
-                      onPress={() => update($, expanded, l => (l.includes(c.id) ? l.filter(x => x !== c.id) : [...l, c.id]))}
-                    >
-                      <Text dimColor>{indent}</Text>
-                      {icon(c)}
-                      <Text color="cyan"> {cut(c.tool, toolW).padEnd(toolW)}</Text>
-                      {hasSummary ? <Text dimColor> {cutSmart(c.summary, sumW).padEnd(sumW)}</Text> : null}
-                      {barW > 0 ? (
-                        <Text>
-                          {' '}
-                          <Text backgroundColor={color ?? 'green'}>{' '.repeat(w)}</Text>
-                          <Text backgroundColor={TRACK}>{' '.repeat(Math.max(0, barW - w))}</Text>
-                        </Text>
-                      ) : null}
-                      <Text color={color} dimColor={color === undefined}>
-                        {(c.ms === null ? '' : fmt(c.ms)).padStart(timeW)}
+              return (
+                <Box flexDirection="column">
+                  <Button
+                    key={`c-${c.id}`}
+                    plain
+                    onPress={() => update($, expanded, l => (l.includes(c.id) ? l.filter(x => x !== c.id) : [...l, c.id]))}
+                  >
+                    <Text dimColor>{indent}</Text>
+                    {icon(c)}
+                    <Text color="cyan"> {cut(c.tool, toolW).padEnd(toolW)}</Text>
+                    {hasSummary ? <Text dimColor> {cutSmart(c.summary, sumW).padEnd(sumW)}</Text> : null}
+                    {barW > 0 ? (
+                      <Text>
+                        {' '}
+                        <Text backgroundColor={color ?? 'green'}>{' '.repeat(w)}</Text>
+                        {' '.repeat(Math.max(0, barW - w))}
                       </Text>
-                    </Button>
-                    {isOn &&
-                      wrap(c.full || '(sem entrada)', cols - indent.length - 2).map(line => (
-                        <Text dimColor>
-                          {indent}│ {line}
-                        </Text>
-                      ))}
-                  </Box>
-                )
-              })}
+                    ) : null}
+                    <Text color={color} dimColor={color === undefined}>
+                      {(c.ms === null ? '' : fmt(c.ms)).padStart(timeW)}
+                    </Text>
+                  </Button>
+                  {isOn &&
+                    wrap(c.full || '(sem entrada)', cols - indent.length - 2).map(line => (
+                      <Text dimColor>
+                        {indent}│ {line}
+                      </Text>
+                    ))}
+                </Box>
+              )
+            })}
         </Box>
       )
     })
@@ -227,7 +274,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Text bold>
-          {list.length} calls
+          {visible.length} calls
           <Text dimColor>
             {' '}
             · {fmt(total)} working{slow ? ` · slowest ${slow.tool} ${fmt(slow.ms ?? 0)}` : ''}
@@ -269,6 +316,11 @@ export const register: Register = on => {
             <Text dimColor>limpar</Text>
           </Button>
         </Box>
+        {isFiltered ? (
+          <Text dimColor>
+            filtro: {[f !== 'all' ? (f === 'errors' ? 'erros' : 'lentas') : '', tf].filter(Boolean).join(' · ')} · {shownCount} de {visible.length}
+          </Text>
+        ) : null}
         <Text> </Text>
         {turnBlocks.every(b => b === null) && <Text dimColor>Nenhuma chamada{f !== 'all' || tf !== '' ? ' neste filtro' : ' ainda'}.</Text>}
         {turnBlocks}

@@ -117,5 +117,15 @@ tabela de plugins acima e faça o commit.
 Publicando este repositório no GitHub, qualquer pessoa instala com:
 
 ```sh
-claude plugin install usage-band --marketplace <owner>/claude-plugins
+claude plugin install usage-band --marketplace nereumelo/claude-plugins
 ```
+
+## Lançar uma versão
+
+Cada `plugin.json` tem `version`, e é ela que decide se há atualização: um commit
+novo sem mudar o número **não** chega a quem já instalou. Para lançar:
+
+1. suba `version` no `plugin.json` do mod alterado;
+2. commit e push em `main`;
+3. quem usa atualiza com `claude plugin marketplace update nereu-plugins` e
+   `claude plugin update <mod>@nereu-plugins`.

@@ -8,6 +8,12 @@ do grupo (só a partir de 1s), com o tempo. Chamadas de subagente aparecem
 indentadas com `└`, logo abaixo do `Agent` que as disparou, e o tempo do `Agent`
 é o do subagente até o relatório de volta (que não aparece como chamada).
 
+Instalar:
+
+```
+/plugin install tool-log --marketplace nereumelo/claude-plugins
+```
+
 Atalhos, mostrados na barra do painel (com ele focado): `e` só erros, `l` só chamadas de 5s ou mais, `t`
 cicla o filtro por ferramenta, `p` pausa o registro, `c` limpa. Clique no título
 de um turno para recolher ou abrir o grupo, e numa chamada para ver a entrada

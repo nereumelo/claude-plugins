@@ -95,7 +95,7 @@ export const register: Register = on => {
             {' '}
             {String(pct).padStart(3)}%
           </Text>
-          {level === 0 && reset ? <Text dimColor>  {reset}</Text> : null}
+          {level === 0 && reset ? <Text dimColor>  ↻ {reset}</Text> : null}
         </Text>
       )
     }

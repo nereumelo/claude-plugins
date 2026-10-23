@@ -1,0 +1,11 @@
+{
+  "name": "nereu-plugins",
+  "owner": { "name": "Nereu Melo" },
+  "plugins": [
+    {
+      "name": "usage-band",
+      "source": "./usage-band",
+      "description": "Faixa acima do prompt com modelo, uso da sessão (5h) e uso semanal"
+    }
+  ]
+}

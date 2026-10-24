@@ -57,9 +57,9 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
-    const pct = await read($, percentAtom)
+    const pct = (await read($, percentAtom)) ?? 0
 
-    if (e.props.hasSurvey || pct === null) {
+    if (e.props.hasSurvey) {
       return below
     }
 

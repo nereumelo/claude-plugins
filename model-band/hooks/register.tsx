@@ -51,7 +51,8 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
-    const id = await read($, model)
+    // /clear não dispara session.start e zera o estado: sem valor, pergunta ao engine
+    const id = (await read($, model)) || (await $.session.model())
 
     if (e.props.hasSurvey || id === '') {
       return below

@@ -58,7 +58,9 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
-    const limits = await read($, limitsAtom)
+    // /clear não dispara session.start e zera o estado: sem valor, pergunta ao engine
+    const stored = await read($, limitsAtom)
+    const limits = stored.length > 0 ? stored : (await $.session.usage()).rateLimits
 
     if (e.props.hasSurvey || limits.length === 0) {
       return below

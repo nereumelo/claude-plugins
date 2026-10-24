@@ -1,1 +1,1 @@
-{ "name": "model-band", "version": "0.1.0", "description": "Segmento da faixa acima do prompt: modelo em uso", "types": "./types/index.d.ts" }
+{ "name": "model-band", "version": "0.1.1", "description": "Segmento da faixa acima do prompt: modelo em uso", "types": "./types/index.d.ts" }

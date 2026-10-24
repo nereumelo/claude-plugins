@@ -24,6 +24,8 @@ const segmentsOf = (below: unknown): Node[] =>
 const rankOf = (n: Node) => Number(n.props?.key?.slice(4) ?? 0)
 
 const model = atom({ plugin: 'model-band', key: 'model' } as const, '')
+// modelo de cada subagente, pelo `model` do último turn.step do loop dele
+const agents = atom({ plugin: 'model-band', key: 'agents' } as const, {} as Record<string, string>)
 
 // claude-sonnet-5-5 -> Sonnet 5.5, claude-opus-4-1-20250805 -> Opus 4.1
 const prettyModel = (id: string) => {
@@ -49,10 +51,22 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('turn.step', async function* ($, e, next) {
+    const agentId = e.agentId
+
+    if (agentId) {
+      await update($, agents, m => (m[agentId] === e.model ? m : { ...m, [agentId]: e.model }))
+    }
+
+    return yield* next(e)
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     // /clear não dispara session.start e zera o estado: sem valor, pergunta ao engine
-    const id = (await read($, model)) || (await $.session.model())
+    // visão de um subagente: o modelo dele, não o da sessão
+    const viewed = e.props.view.agentId
+    const id = (viewed && (await read($, agents))[viewed]) || (await read($, model)) || (await $.session.model())
 
     if (e.props.hasSurvey || id === '') {
       return below

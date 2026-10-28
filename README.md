@@ -28,6 +28,7 @@ A **classificação** usa dois campos de cada entrada:
 | [`usage-band`](usage-band/README.md) | mod | custom | Faixa: uso da sessão (5h) e semanal |
 | [`context-band`](context-band/README.md) | mod | custom | Faixa: janela de contexto, toast aos 80% e 90% |
 | [`tool-log`](tool-log/README.md) | mod | custom | Painel `/tool-log` com chamadas de ferramenta e duração |
+| [`usage-guard`](usage-guard/README.md) | mod | custom | Interrompe sessões com segurança aos 96% (5h) ou 98% (7d), com status e memo |
 
 ### Faixa única
 

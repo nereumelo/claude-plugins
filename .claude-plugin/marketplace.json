@@ -50,6 +50,18 @@
         "pane",
         "tools"
       ]
+    },
+    {
+      "name": "usage-guard",
+      "source": "./usage-guard",
+      "description": "Interrompe sessões com segurança quando a sessão (5h) chega a 96% ou a semana (7d) a 98%, com status e memo",
+      "category": "mod",
+      "tags": [
+        "custom",
+        "usage",
+        "safety",
+        "hook"
+      ]
     }
   ]
 }

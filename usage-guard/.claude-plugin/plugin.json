@@ -1,6 +1,6 @@
 {
   "name": "usage-guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interrompe sessões com segurança quando a sessão (5h) chega a 96% ou a semana (7d) a 98%: encerramento gracioso com registro de status e memória",
   "license": "MIT"
 }

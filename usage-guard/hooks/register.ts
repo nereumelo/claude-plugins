@@ -30,6 +30,8 @@ export const register: Register = on => {
 
   const tripped = (limits: readonly { kind: string; percentUsed: number; resetsAt?: string }[]): Halt | undefined => {
     for (const l of limits) {
+      // leitura de uma janela que já renovou: o percentual é velho, ignora
+      if (l.resetsAt && Date.parse(l.resetsAt) <= Date.now()) continue
       const max = LIMITS[l.kind]
       if (max !== undefined && l.percentUsed >= max) {
         const until = l.resetsAt ? Date.parse(l.resetsAt) : Date.now() + 60 * 60 * 1000
@@ -40,6 +42,16 @@ export const register: Register = on => {
   }
 
   const halted = (until: number) => `usage-guard: sessão interrompida por limite de uso. Renova ${fmtUntil(until)}. Use /usage-guard override para seguir assim mesmo.`
+
+  // a janela renovou: libera a sessão (e o estado salvo) sem precisar de override
+  const release = async ($: { store: { delete(k: string): Promise<unknown> }; ui: { status(s: string | undefined): void } }) => {
+    if (phase === 'running' || !haltInfo || haltInfo.until > Date.now()) return
+    phase = 'running'
+    isWrapUp = false
+    haltInfo = undefined
+    await $.store.delete(HALT_KEY).catch(() => undefined)
+    $.ui.status(undefined)
+  }
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -61,6 +73,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'usage-guard' }, async ($, e) => {
+    await release($)
     if (e.args.trim() === 'override') {
       isOverridden = true
       phase = 'running'
@@ -75,6 +88,7 @@ export const register: Register = on => {
   })
 
   on('session.measure', async ($, e, next) => {
+    await release($)
     if (phase === 'running' && !isOverridden) {
       const halt = tripped(e.rateLimits)
       if (halt) {
@@ -116,13 +130,15 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('prompt.submit', ($, e, next) => {
+  on('prompt.submit', async ($, e, next) => {
+    await release($)
     if (phase === 'running' || e.command) return next(e)
     if (phase === 'draining' && e.origin.kind === 'plugin') return next(e)
     return { drop: halted(haltInfo?.until ?? Date.now()) }
   }).catch(($, e, next) => (phase === 'running' ? next(e) : { drop: 'usage-guard: sessão interrompida por limite de uso.' }))
 
-  on('tool.call', ($, e, next) => {
+  on('tool.call', async ($, e, next) => {
+    await release($)
     if (phase === 'running') return next(e)
     if (phase === 'halted') return { deny: halted(haltInfo?.until ?? Date.now()) }
 
